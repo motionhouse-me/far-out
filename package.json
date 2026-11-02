@@ -1,0 +1,10 @@
+{
+  "name": "far-out",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "A group rare-answer trivia game. The obvious answer stays on the ground.",
+  "dependencies": {
+    "@netlify/blobs": "^11.1.7"
+  }
+}

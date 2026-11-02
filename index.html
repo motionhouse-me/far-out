@@ -1,0 +1,792 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Far Out</title>
+<meta name="description" content="A rare-answer party game. The obvious answer stays on the ground.">
+<meta name="theme-color" content="#0b0820">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🪐</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;900&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0b0820; --bg2:#1a1145; --card:rgba(255,255,255,.06); --card-b:rgba(255,255,255,.12);
+    --ink:#f4f1ff; --mute:#a9a3cf; --dim:#6f6898;
+    --pink:#ff6b9d; --gold:#ffd166; --cyan:#5ce1e6; --violet:#9b8cff; --green:#7cf29a;
+    --t0:#9aa3c7; --t1:#5ce1e6; --t2:#9b8cff; --t3:#ffd166;
+    --r:22px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:"DM Sans",system-ui,sans-serif; color:var(--ink); background:var(--bg);
+    background-image:
+      radial-gradient(1200px 700px at 85% -10%, #3a1d7a 0%, transparent 60%),
+      radial-gradient(900px 600px at -10% 110%, #5b1748 0%, transparent 55%),
+      linear-gradient(180deg,var(--bg) 0%, var(--bg2) 100%);
+    background-attachment:fixed; min-height:100dvh; overflow-x:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+  #sky{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+  .star{position:absolute;border-radius:50%;background:#fff;animation:tw 4s ease-in-out infinite}
+  @keyframes tw{0%,100%{opacity:.25}50%{opacity:1}}
+  .planet{position:fixed;right:-90px;top:60px;width:260px;height:260px;border-radius:50%;
+    background:radial-gradient(circle at 30% 30%,#ffb38a,#ff6b9d 45%,#5b2a8a 80%);
+    box-shadow:0 0 80px rgba(255,107,157,.35); opacity:.55; z-index:0; pointer-events:none}
+  .planet::after{content:"";position:absolute;left:-60px;top:110px;width:380px;height:48px;border-radius:50%;
+    border:3px solid rgba(255,209,102,.55);transform:rotate(-18deg)}
+  @media (prefers-reduced-motion:reduce){.star{animation:none}}
+
+  main{position:relative;z-index:1;max-width:560px;margin:0 auto;padding:22px 16px 60px}
+  .screen{display:none;animation:in .35s ease}
+  .screen.on{display:block}
+  @keyframes in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+  h1.logo{font-family:"Unbounded",system-ui,sans-serif;font-weight:900;font-size:clamp(54px,17vw,92px);line-height:.88;letter-spacing:-.03em;margin:28px 0 10px}
+  h1.logo span{display:block;background:linear-gradient(90deg,var(--gold),var(--pink) 60%,var(--violet));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .tag{color:var(--mute);font-size:18px;margin-bottom:28px}
+  h2{font-family:"Unbounded",system-ui,sans-serif;font-weight:700;font-size:20px;margin-bottom:12px}
+  .small{font-size:13px;color:var(--mute)}
+  .card{background:var(--card);border:1px solid var(--card-b);border-radius:var(--r);padding:18px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+  .stack>*+*{margin-top:12px}
+  label{display:block;font-size:13px;color:var(--mute);margin-bottom:6px;font-weight:500}
+  input{width:100%;font:inherit;font-size:18px;color:var(--ink);background:rgba(0,0,0,.28);border:1.5px solid var(--card-b);
+    border-radius:14px;padding:14px 16px;outline:none;transition:border-color .15s}
+  input:focus{border-color:var(--violet)}
+  input.code{text-transform:uppercase;letter-spacing:.35em;font-family:"Unbounded",system-ui,sans-serif;font-weight:700;text-align:center}
+  button{font:inherit;cursor:pointer;border:0;border-radius:14px;padding:15px 18px;font-weight:700;font-size:17px;color:#1a0b2e;
+    background:linear-gradient(90deg,var(--gold),var(--pink));width:100%;transition:transform .08s, filter .15s; -webkit-tap-highlight-color:transparent}
+  button:active{transform:scale(.98)}
+  button:disabled{filter:grayscale(.8) brightness(.6);cursor:default}
+  button.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--card-b)}
+  button.link{background:none;color:var(--mute);padding:8px;width:auto;font-weight:500;font-size:14px;text-decoration:underline}
+  .row{display:flex;gap:10px;align-items:center}
+  .or{display:flex;align-items:center;gap:10px;color:var(--dim);font-size:13px;margin:18px 0}
+  .or::before,.or::after{content:"";flex:1;height:1px;background:var(--card-b)}
+
+  /* lobby */
+  .roomcode{font-family:"Unbounded",system-ui,sans-serif;font-weight:900;font-size:64px;letter-spacing:.12em;text-align:center;line-height:1;margin:6px 0 4px}
+  .chips{display:flex;flex-wrap:wrap;gap:8px}
+  .chip{display:inline-flex;align-items:center;gap:8px;padding:8px 12px 8px 8px;border-radius:999px;background:rgba(255,255,255,.07);font-weight:500}
+  .dot{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:700;color:#1a0b2e}
+  .tiers{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .tier{border-radius:14px;padding:10px 12px;background:rgba(0,0,0,.22);border-left:4px solid}
+  .tier b{font-family:"Unbounded",system-ui,sans-serif;font-size:13px;display:block}
+  .tier span{font-size:13px;color:var(--mute)}
+
+  /* play */
+  .hud{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+  .pips{display:flex;gap:6px}
+  .pip{width:22px;height:6px;border-radius:3px;background:rgba(255,255,255,.14)}
+  .pip.done{background:var(--violet)} .pip.now{background:var(--gold)}
+  .alt{font-family:"Unbounded",system-ui,sans-serif;font-weight:700;font-size:15px}
+  .alt small{font-family:"DM Sans";color:var(--mute);font-weight:500;font-size:12px}
+  .prompt{font-family:"Unbounded",system-ui,sans-serif;font-weight:700;font-size:clamp(28px,8vw,40px);line-height:1.1;margin:18px 0 22px;min-height:2.2em}
+  .timer{height:10px;border-radius:5px;background:rgba(255,255,255,.1);overflow:hidden;margin-bottom:18px}
+  .timer i{display:block;height:100%;width:100%;background:linear-gradient(90deg,var(--cyan),var(--violet));transform-origin:left}
+  .timer.low i{background:linear-gradient(90deg,var(--pink),#ff3d6e)}
+  .secs{font-family:"Unbounded",system-ui,sans-serif;font-size:13px;color:var(--mute);text-align:right;margin:-12px 0 12px}
+  .flash{text-align:center;padding:34px 10px}
+  .flash .big{font-family:"Unbounded",system-ui,sans-serif;font-weight:900;font-size:42px;line-height:1}
+  .flash .ans{font-size:20px;margin-bottom:12px;color:var(--mute)}
+  .flash .pts{font-family:"Unbounded",system-ui,sans-serif;font-size:22px;margin-top:10px}
+  .pop{animation:pop .45s cubic-bezier(.2,1.6,.4,1)}
+  @keyframes pop{from{transform:scale(.6);opacity:0}to{transform:none;opacity:1}}
+
+  /* results */
+  .board .p{display:flex;align-items:center;gap:12px;padding:12px 4px;border-bottom:1px solid var(--card-b)}
+  .board .p:last-child{border-bottom:0}
+  .rank{font-family:"Unbounded",system-ui,sans-serif;font-weight:900;width:30px;text-align:center;font-size:20px}
+  .board .name{flex:1;font-weight:700;font-size:18px}
+  .board .bar{height:6px;border-radius:3px;margin-top:6px;background:rgba(255,255,255,.08);overflow:hidden}
+  .board .bar i{display:block;height:100%;border-radius:3px}
+  .score{font-family:"Unbounded",system-ui,sans-serif;font-weight:700;font-size:20px;text-align:right}
+  .score small{display:block;font-family:"DM Sans";font-size:11px;color:var(--mute);font-weight:500}
+  .winner{text-align:center;margin:8px 0 18px}
+  .winner .crown{font-size:46px}
+  .winner .who{font-family:"Unbounded",system-ui,sans-serif;font-weight:900;font-size:30px}
+  .q{margin-top:14px}
+  .q h3{font-family:"Unbounded",system-ui,sans-serif;font-size:15px;font-weight:700;margin-bottom:10px}
+  .ansrow{display:flex;align-items:center;gap:10px;padding:8px 0;flex-wrap:wrap}
+  .ansrow .who{width:78px;font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ansrow .what{flex:1;min-width:90px;font-size:16px}
+  .pill{font-size:11px;font-weight:700;padding:4px 8px;border-radius:999px;color:#1a0b2e;white-space:nowrap}
+  .badge{font-size:11px;font-weight:700;padding:3px 7px;border-radius:999px;border:1px solid;white-space:nowrap}
+  .missed{font-size:13px;color:var(--mute);margin-top:8px;padding-top:8px;border-top:1px dashed var(--card-b)}
+  .missed b{color:var(--gold);font-weight:500}
+  .wait li{list-style:none;display:flex;align-items:center;gap:10px;padding:6px 0}
+
+  #toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(120px);background:#2a1d5c;border:1px solid var(--card-b);
+    padding:12px 18px;border-radius:14px;z-index:9;transition:transform .25s;max-width:90vw;font-weight:500}
+  #toast.show{transform:translateX(-50%) translateY(0)}
+  .confetti{position:fixed;top:-20px;width:9px;height:14px;z-index:5;pointer-events:none;animation:fall linear forwards}
+  @keyframes fall{to{transform:translateY(110vh) rotate(720deg)}}
+  .center{text-align:center}
+  .mt{margin-top:18px}
+</style>
+</head>
+<body>
+<div id="sky"></div>
+<div class="planet" aria-hidden="true"></div>
+
+<main>
+  <!-- HOME -->
+  <section class="screen" id="s-home">
+    <h1 class="logo">FAR<span>OUT</span></h1>
+    <p class="tag">The obvious answer stays on the ground. 🚀</p>
+    <div class="card stack">
+      <div><label for="name">Your name</label><input id="name" maxlength="16" placeholder="e.g. Qabas" autocomplete="nickname"></div>
+      <button id="btn-create">Create a room</button>
+      <div class="or">or join your sisters</div>
+      <div class="row">
+        <input id="joincode" class="code" maxlength="4" placeholder="CODE" autocomplete="off" autocapitalize="characters">
+        <button id="btn-join" class="ghost" style="width:auto;padding:15px 22px">Join</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- LOBBY -->
+  <section class="screen" id="s-lobby">
+    <div class="card center">
+      <div class="small">Room code</div>
+      <div class="roomcode" id="lobby-code">····</div>
+      <button class="ghost" id="btn-invite" style="margin-top:10px">Share invite link</button>
+    </div>
+    <div class="card mt">
+      <h2>Crew on board</h2>
+      <div class="chips" id="lobby-players"></div>
+    </div>
+    <div class="card mt">
+      <h2>How to play</h2>
+      <p class="small" style="margin-bottom:12px">Everyone gets the same 7 prompts. You have 25 seconds each. Any correct answer counts — but the rarer it is, the farther you fly.</p>
+      <div class="tiers" id="tiers"></div>
+      <p class="small" style="margin-top:12px">🛰️ <b style="color:var(--ink)">Solo flight +20</b> if nobody else in the room gave the same answer. Say the same thing as your sister? <b style="color:var(--ink)">Jinx</b> — no bonus.</p>
+    </div>
+    <div class="mt" id="lobby-action"></div>
+    <div class="center"><button class="link" data-leave>Leave room</button></div>
+  </section>
+
+  <!-- PLAY -->
+  <section class="screen" id="s-play">
+    <div class="hud">
+      <div class="pips" id="pips"></div>
+      <div class="alt" id="alt">0 <small>light-years</small></div>
+    </div>
+    <div id="play-q">
+      <div class="prompt" id="prompt"></div>
+      <div class="timer" id="timer"><i id="timer-bar"></i></div>
+      <div class="secs" id="secs">25</div>
+      <form id="answer-form" class="stack" autocomplete="off">
+        <input id="answer" maxlength="40" placeholder="Type something far out…" autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="go">
+        <button type="submit">Launch 🚀</button>
+      </form>
+    </div>
+    <div id="play-flash" class="flash" hidden></div>
+  </section>
+
+  <!-- RESULTS -->
+  <section class="screen" id="s-results">
+    <div id="results"></div>
+    <div class="mt" id="results-action"></div>
+    <div class="center"><button class="link" data-leave>Leave room</button></div>
+  </section>
+</main>
+<div id="toast"></div>
+
+<script>
+// Far Out — prompt & answer bank.
+// Each prompt has four tiers, from the answer everyone blurts out to the truly far-out:
+//   [0] Launchpad (10)   [1] Low Orbit (30)   [2] Deep Space (60)   [3] Far Out (100)
+// Add your own prompts at the bottom — answers separated by "|".
+window.BANK = [
+  { q: "Name a fruit", t: [
+    "apple|banana|orange|strawberry|grape|mango|watermelon|pineapple",
+    "pear|peach|cherry|kiwi|lemon|blueberry|raspberry|plum|pomegranate|melon|lime|coconut|apricot|papaya|grapefruit|fig|date",
+    "lychee|guava|passion fruit|nectarine|cantaloupe|tangerine|clementine|mandarin|blackberry|cranberry|avocado|persimmon|honeydew|dragon fruit|kumquat|mulberry|gooseberry|quince",
+    "durian|rambutan|mangosteen|jackfruit|soursop|starfruit|carambola|longan|loquat|feijoa|salak|cherimoya|tamarind|pawpaw|jabuticaba|ackee|lingonberry|elderberry|yuzu|pomelo|physalis|medlar|sapodilla|breadfruit|cloudberry"] },
+
+  { q: "Name a country in Africa", t: [
+    "egypt|south africa|nigeria|kenya|morocco",
+    "ghana|ethiopia|algeria|tunisia|sudan|somalia|tanzania|uganda|libya|zimbabwe|senegal|cameroon",
+    "angola|mali|madagascar|rwanda|namibia|botswana|zambia|ivory coast|cote d'ivoire|mozambique|congo|democratic republic of the congo|drc|niger|chad|mauritania|south sudan|eritrea|malawi",
+    "lesotho|eswatini|swaziland|djibouti|gabon|benin|togo|burkina faso|burundi|guinea|guinea-bissau|equatorial guinea|sierra leone|liberia|gambia|cape verde|cabo verde|comoros|seychelles|mauritius|sao tome and principe|central african republic"] },
+
+  { q: "Name a dog breed", t: [
+    "labrador|golden retriever|german shepherd|poodle|bulldog|husky|chihuahua",
+    "beagle|pug|dalmatian|rottweiler|corgi|shih tzu|pomeranian|dachshund|boxer|doberman|border collie|french bulldog|yorkshire terrier|yorkie|great dane|maltese",
+    "shiba inu|akita|samoyed|saint bernard|bernese mountain dog|cocker spaniel|greyhound|whippet|chow chow|bichon frise|jack russell|pitbull|cavalier king charles spaniel|schnauzer|australian shepherd|malamute|alaskan malamute|newfoundland|basset hound|bloodhound|shar pei|weimaraner|vizsla",
+    "saluki|basenji|borzoi|komondor|puli|xoloitzcuintli|xolo|affenpinscher|lagotto romagnolo|azawakh|otterhound|leonberger|briard|kuvasz|sloughi|keeshond|schipperke|bedlington terrier|norwegian lundehund|mudi|catahoula|tibetan mastiff|pharaoh hound|ibizan hound|dandie dinmont terrier"] },
+
+  { q: "Name a planet or moon in our solar system", t: [
+    "earth|mars|jupiter|saturn|moon",
+    "venus|mercury|neptune|uranus|pluto",
+    "titan|europa|io|ganymede|callisto|phobos|deimos|triton|enceladus|charon",
+    "miranda|titania|oberon|umbriel|ariel|mimas|tethys|dione|rhea|iapetus|hyperion|phoebe|nereid|proteus|amalthea|ceres|eris|haumea|makemake|himalia|pan|janus|epimetheus|puck"] },
+
+  { q: "Name a colour", t: [
+    "red|blue|green|yellow|black|white|pink|purple|orange",
+    "brown|grey|gray|gold|silver|navy|beige|turquoise|violet|maroon|teal",
+    "lavender|magenta|cyan|indigo|crimson|lilac|mint|olive|peach|coral|burgundy|ivory|cream|khaki|scarlet|aqua|lime|tan|charcoal|mustard",
+    "chartreuse|vermilion|vermillion|cerulean|ochre|periwinkle|mauve|fuchsia|taupe|puce|sienna|umber|celadon|aubergine|amaranth|cobalt|ultramarine|sepia|eggshell|cinnabar|zaffre|wisteria|gamboge|xanadu|saffron"] },
+
+  { q: "Name a vegetable", t: [
+    "carrot|potato|tomato|broccoli|onion|cucumber|lettuce",
+    "spinach|cabbage|pepper|corn|peas|garlic|cauliflower|celery|eggplant|aubergine|zucchini|courgette|mushroom|pumpkin|bell pepper|bean|green beans",
+    "kale|asparagus|beetroot|beet|radish|sweet potato|leek|artichoke|okra|brussels sprouts|turnip|squash|parsnip|bok choy|chard",
+    "kohlrabi|celeriac|fennel|rutabaga|swede|jicama|salsify|romanesco|daikon|mooli|taro|cassava|yam|watercress|endive|chicory|radicchio|samphire|sunchoke|jerusalem artichoke|bitter melon|lotus root|fiddlehead|molokhia|purslane"] },
+
+  { q: "Name a sport", t: [
+    "football|soccer|basketball|tennis|swimming",
+    "cricket|baseball|volleyball|golf|rugby|boxing|hockey|running|cycling|badminton|table tennis|ping pong",
+    "handball|water polo|fencing|rowing|surfing|skiing|snowboarding|gymnastics|wrestling|karate|judo|taekwondo|archery|squash|netball|lacrosse|polo|sailing|bowling|darts|snooker|padel",
+    "curling|sepak takraw|kabaddi|hurling|bobsleigh|luge|skeleton|biathlon|korfball|jai alai|pelota|underwater hockey|octopush|camel racing|falconry|bossaball|sumo|modern pentathlon|pentathlon|canoe polo|kendo|parkour|shinty|bandy|teqball"] },
+
+  { q: "Name an animal that lives in the ocean", t: [
+    "shark|whale|dolphin|fish|octopus|jellyfish",
+    "crab|lobster|seal|turtle|sea turtle|starfish|squid|shrimp|stingray|clownfish|seahorse|tuna",
+    "orca|manta ray|walrus|eel|moray eel|narwhal|sea lion|sea urchin|clam|oyster|mussel|barracuda|swordfish|pufferfish|beluga|cuttlefish|krill|coral|anemone|sea otter|plankton",
+    "dugong|manatee|nudibranch|sea cucumber|anglerfish|blobfish|oarfish|sunfish|mola mola|lionfish|wobbegong|sea slug|hagfish|lamprey|vampire squid|nautilus|frogfish|goblin shark|isopod|barreleye|siphonophore|leafy sea dragon|sea pen|mantis shrimp|parrotfish"] },
+
+  { q: "Name a capital city in Europe", t: [
+    "paris|london|rome|madrid|berlin",
+    "amsterdam|vienna|athens|lisbon|dublin|brussels|prague|moscow|stockholm|oslo|copenhagen",
+    "warsaw|budapest|helsinki|bern|bucharest|sofia|belgrade|zagreb|kyiv|kiev|edinburgh|cardiff|reykjavik|monaco|luxembourg|bratislava",
+    "vilnius|riga|tallinn|ljubljana|valletta|tirana|skopje|podgorica|sarajevo|chisinau|minsk|andorra la vella|vaduz|san marino|nicosia|vatican city|pristina|tbilisi|yerevan|baku|belfast"] },
+
+  { q: "Name a musical instrument", t: [
+    "piano|guitar|drums|violin|flute",
+    "trumpet|saxophone|cello|harp|clarinet|keyboard|bass|ukulele|tambourine|recorder|xylophone",
+    "oboe|trombone|tuba|banjo|accordion|harmonica|bagpipes|viola|french horn|double bass|bassoon|mandolin|triangle|organ|oud|sitar|bongos|maracas|synthesizer|cymbal",
+    "theremin|didgeridoo|hurdy-gurdy|kalimba|glockenspiel|celesta|sousaphone|ocarina|qanun|kanun|darbuka|riq|ney|balalaika|koto|shamisen|erhu|tabla|marimba|vibraphone|harpsichord|dulcimer|zither|kazoo|bodhran|steelpan|steel drum|lute|piccolo|euphonium|cajon|handpan"] },
+
+  { q: "Name a spice or herb", t: [
+    "salt|pepper|cinnamon|basil|garlic|chili",
+    "oregano|cumin|paprika|turmeric|ginger|mint|parsley|rosemary|thyme|coriander|cilantro|nutmeg|curry|saffron",
+    "cardamom|clove|dill|sage|bay leaf|chives|fennel|tarragon|vanilla|star anise|anise|sumac|za'atar|zaatar|cayenne|mustard seed|allspice|chilli",
+    "fenugreek|asafoetida|galangal|lemongrass|mahlab|nigella|black seed|marjoram|savory|lovage|sorrel|chervil|epazote|grains of paradise|long pepper|sichuan pepper|annatto|achiote|kaffir lime|makrut lime|juniper|mace|loomi|dried lime|baharat|ras el hanout|caraway|amchur|ajwain"] },
+
+  { q: "Name a type of pasta", t: [
+    "spaghetti|penne|macaroni|lasagna|fettuccine",
+    "ravioli|linguine|tagliatelle|fusilli|rigatoni|farfalle|bowtie|tortellini|gnocchi|lasagne",
+    "orzo|pappardelle|conchiglie|shells|cannelloni|angel hair|capellini|ziti|rotini|vermicelli|bucatini|tortelloni|gemelli|ditalini",
+    "orecchiette|trofie|strozzapreti|casarecce|cavatappi|cavatelli|radiatori|campanelle|paccheri|mafaldine|bigoli|pici|garganelli|agnolotti|cappelletti|anelli|stelline|lumache|creste di gallo|fregola|malloreddus|corzetti|calamarata|lorighittas"] },
+
+  { q: "Name a bird", t: [
+    "eagle|parrot|penguin|pigeon|owl|chicken",
+    "duck|swan|flamingo|crow|robin|sparrow|peacock|hawk|falcon|ostrich|seagull|gull|turkey|goose|hummingbird",
+    "toucan|pelican|stork|heron|woodpecker|kingfisher|vulture|raven|magpie|canary|cockatoo|macaw|emu|kiwi|blue jay|cardinal|albatross|puffin|condor|budgie|parakeet|crane|quail",
+    "shoebill|hoopoe|kakapo|cassowary|lyrebird|bee-eater|secretary bird|frigatebird|booby|blue-footed booby|ibis|spoonbill|nightjar|oriole|wren|warbler|bulbul|myna|mynah|hornbill|kookaburra|tern|plover|bittern|rhea|potoo|quetzal|treecreeper|nuthatch|houbara|sandgrouse"] },
+
+  { q: "Name a gemstone", t: [
+    "diamond|ruby|emerald|sapphire",
+    "pearl|amethyst|opal|topaz|jade|onyx",
+    "garnet|turquoise|aquamarine|peridot|citrine|tanzanite|lapis lazuli|lapis|moonstone|amber|quartz|rose quartz|tourmaline",
+    "alexandrite|spinel|zircon|morganite|kunzite|iolite|chrysoberyl|tsavorite|malachite|obsidian|carnelian|beryl|jasper|agate|bloodstone|labradorite|sunstone|benitoite|painite|taaffeite|demantoid|rhodochrosite|sodalite|tiger's eye|chalcedony|larimar|hematite"] },
+
+  { q: "Name a part of the body", t: [
+    "hand|head|arm|leg|eye|nose|foot|mouth",
+    "ear|finger|toe|knee|elbow|heart|brain|hair|shoulder|neck|stomach|back|chest|lip|tongue|teeth|tooth",
+    "liver|lung|kidney|wrist|ankle|heel|thumb|eyebrow|eyelash|chin|cheek|forehead|hip|thigh|calf|spine|rib|skull|skin|nail|palm|jaw",
+    "uvula|spleen|pancreas|appendix|gallbladder|philtrum|septum|clavicle|sternum|femur|tibia|fibula|patella|scapula|coccyx|cochlea|epiglottis|larynx|pharynx|diaphragm|thymus|thyroid|hypothalamus|cerebellum|duodenum|achilles tendon|earlobe|cuticle|nape|armpit|axilla"] },
+
+  { q: "Name a cheese", t: [
+    "cheddar|mozzarella|parmesan|feta",
+    "brie|gouda|swiss|cream cheese|camembert|halloumi|blue cheese|goat cheese|ricotta|edam",
+    "gorgonzola|roquefort|stilton|emmental|gruyere|mascarpone|provolone|manchego|paneer|cottage cheese|burrata|monterey jack|colby|pecorino|havarti|akkawi",
+    "comte|raclette|taleggio|fontina|reblochon|epoisses|munster|limburger|jarlsberg|wensleydale|red leicester|double gloucester|labneh|nabulsi|queso fresco|cotija|oaxaca|asiago|caciocavallo|stracciatella|scamorza|tete de moine|mimolette|vacherin|casu marzu|kashkaval|shanklish|chhena|brunost"] },
+
+  { q: "Name a country in Asia", t: [
+    "china|japan|india|korea|south korea",
+    "thailand|vietnam|indonesia|philippines|pakistan|malaysia|singapore|north korea|saudi arabia|uae|united arab emirates|bangladesh|nepal|sri lanka|iran|turkey",
+    "mongolia|cambodia|laos|myanmar|burma|afghanistan|iraq|qatar|kuwait|oman|bahrain|jordan|lebanon|syria|israel|taiwan|kazakhstan|uzbekistan|maldives|yemen|bhutan",
+    "brunei|timor-leste|east timor|kyrgyzstan|tajikistan|turkmenistan|georgia|armenia|azerbaijan|cyprus|palestine"] },
+
+  { q: "Name a dessert", t: [
+    "cake|ice cream|chocolate|cookie|brownie",
+    "cheesecake|pie|donut|doughnut|cupcake|pudding|tiramisu|pancake|waffle|muffin|apple pie|macaron|crepe",
+    "baklava|kunafa|knafeh|kunafeh|creme brulee|mousse|panna cotta|eclair|cinnamon roll|churros|gelato|sorbet|trifle|tart|pavlova|profiterole|flan|um ali|umm ali|luqaimat|basbousa|mochi",
+    "rum baba|baba au rhum|clafoutis|tarte tatin|mille-feuille|cannoli|sfogliatella|zabaglione|semifreddo|affogato|kulfi|gulab jamun|jalebi|rasmalai|halva|halwa|malabi|muhallebi|sticky toffee pudding|eton mess|banoffee|bread pudding|cobbler|crumble|baked alaska|kouign-amann|dango|bingsu|halo-halo|pastel de nata|brigadeiro|tres leches|black forest|lamington"] },
+
+  { q: "Name a chemical element", t: [
+    "oxygen|hydrogen|gold|iron|carbon|silver",
+    "helium|nitrogen|copper|calcium|sodium|aluminium|aluminum|zinc|lead|uranium|neon|mercury",
+    "potassium|magnesium|chlorine|sulfur|sulphur|platinum|titanium|silicon|nickel|tin|lithium|phosphorus|plutonium|argon|cobalt|iodine|fluorine|chromium|tungsten|radium",
+    "beryllium|boron|scandium|vanadium|manganese|gallium|germanium|arsenic|selenium|bromine|krypton|rubidium|strontium|yttrium|zirconium|niobium|molybdenum|technetium|ruthenium|rhodium|palladium|cadmium|indium|antimony|tellurium|xenon|caesium|cesium|barium|lanthanum|cerium|neodymium|europium|gadolinium|hafnium|tantalum|rhenium|osmium|iridium|thallium|bismuth|polonium|astatine|radon|francium|actinium|thorium|americium|einsteinium|oganesson|nobelium|curium|fermium|lutetium|ytterbium|erbium|holmium|dysprosium|terbium|samarium|promethium|praseodymium|thulium|protactinium|neptunium|berkelium|californium|mendelevium|lawrencium|rutherfordium|dubnium|seaborgium|bohrium|hassium|meitnerium|darmstadtium|roentgenium|copernicium|nihonium|flerovium|moscovium|livermorium|tennessine"] },
+
+  { q: "Name something you'd find in a kitchen drawer", t: [
+    "knife|spoon|fork|spatula",
+    "whisk|ladle|tongs|peeler|grater|can opener|scissors|chopsticks|teaspoon|tablespoon",
+    "zester|garlic press|measuring cup|measuring spoon|corkscrew|bottle opener|thermometer|pizza cutter|ice cream scoop|skewer|rolling pin|lighter|matches|rubber band|foil|cling film|baking paper|parchment paper|tea towel|batteries|takeaway menu",
+    "mezzaluna|spider|melon baller|pastry brush|bench scraper|dough scraper|piping bag|ricer|potato masher|nutcracker|baster|spurtle|microplane|egg separator|lemon squeezer|reamer|cherry pitter|apple corer|mandoline|pastry cutter|cookie cutter|twist tie|bag clip|meat tenderizer|fish slice|zip tie|birthday candles|spare keys"] },
+
+  { q: "Name a flower", t: [
+    "rose|tulip|sunflower|daisy|lily",
+    "orchid|lavender|jasmine|daffodil|lotus|carnation|poppy|dandelion|hibiscus|marigold|violet",
+    "peony|chrysanthemum|iris|lilac|magnolia|cherry blossom|gardenia|camellia|hydrangea|bluebell|lily of the valley|forget-me-not|freesia|gerbera|begonia|zinnia|azalea|petunia|pansy|cosmos|bougainvillea|frangipani|plumeria|dahlia",
+    "edelweiss|protea|bird of paradise|strelitzia|anemone|ranunculus|delphinium|foxglove|snapdragon|lisianthus|amaryllis|hellebore|wisteria|clematis|calla lily|anthurium|gladiolus|hyacinth|crocus|snowdrop|primrose|cornflower|amaranth|sweet pea|heather|aster|columbine|lupin|alstroemeria|corpse flower|rafflesia"] },
+
+  { q: "Name a mammal", t: [
+    "dog|cat|lion|elephant|tiger|horse|cow|human",
+    "bear|monkey|giraffe|zebra|wolf|fox|rabbit|mouse|rat|pig|sheep|goat|deer|camel|kangaroo|whale|dolphin|bat|panda|squirrel|hippo|hippopotamus|rhino|rhinoceros",
+    "cheetah|leopard|jaguar|gorilla|chimpanzee|orangutan|koala|sloth|otter|beaver|hedgehog|raccoon|skunk|moose|bison|buffalo|llama|alpaca|hyena|meerkat|lemur|badger|porcupine|seal|walrus|platypus|armadillo|anteater|oryx|gazelle|hamster|ferret|donkey|mole",
+    "okapi|aardvark|pangolin|tapir|capybara|wombat|quokka|numbat|echidna|dugong|manatee|narwhal|binturong|fossa|aye-aye|tarsier|slow loris|loris|caracal|serval|ocelot|kinkajou|coati|dik-dik|saiga|markhor|ibex|gerenuk|bongo|kudu|wolverine|marten|mongoose|hyrax|shrew|vole|jerboa|chinchilla|degu|bandicoot|bilby|sugar glider|takin|addax|red panda"] },
+
+  { q: "Name a style of dance", t: [
+    "ballet|hip hop|salsa|tango|breakdance",
+    "waltz|jazz|tap|contemporary|belly dance|ballroom|disco|samba|zumba|bollywood",
+    "flamenco|cha cha|rumba|foxtrot|swing|street dance|line dance|irish dance|k-pop|kathak|bharatanatyam|dabke|krump|twerk|moonwalk|macarena|tutting|voguing|vogue|lambada",
+    "quickstep|paso doble|lindy hop|charleston|bachata|kizomba|merengue|cumbia|polka|mazurka|jive|bolero|capoeira|haka|hula|morris dance|clogging|sirtaki|khaleegi|al ayyala|ayyala|tahtib|tanoura|sufi whirling|popping|locking|waacking|butoh|bhangra|odissi|kuchipudi|garba|riverdance|cancan|can-can"] },
+
+  { q: "Name an item of clothing", t: [
+    "shirt|t-shirt|pants|jeans|dress|jacket|shoes|socks",
+    "skirt|sweater|hoodie|coat|hat|scarf|shorts|trousers|blouse|suit|tie|gloves|jumper|cardigan|pajamas|pyjamas|boots",
+    "abaya|kandura|thobe|dishdasha|hijab|shayla|sari|saree|kimono|blazer|vest|waistcoat|leggings|tracksuit|overalls|dungarees|poncho|cape|beanie|sandals|slippers|sneakers|trainers|robe|bathrobe|swimsuit|bikini|tuxedo|jumpsuit|romper|turtleneck|polo",
+    "kaftan|caftan|jalabiya|ghutra|keffiyeh|agal|bisht|niqab|kilt|sarong|lederhosen|dirndl|hanbok|cheongsam|qipao|ao dai|dashiki|kurta|salwar kameez|lehenga|sherwani|toga|tunic|corset|petticoat|culottes|jodhpurs|balaclava|beret|fedora|fez|sombrero|cravat|ascot|bolero|pashmina|galabeya|mukluk|espadrilles|clogs|loafers|brogues|moccasins"] },
+
+  { q: "Name a job", t: [
+    "doctor|teacher|nurse|engineer|lawyer|police officer|chef|firefighter",
+    "pilot|dentist|accountant|architect|scientist|artist|actor|singer|farmer|mechanic|plumber|electrician|programmer|developer|designer|journalist|photographer|cashier|waiter|soldier|banker",
+    "surgeon|pharmacist|vet|veterinarian|astronaut|judge|librarian|carpenter|baker|butcher|barber|hairdresser|psychologist|therapist|translator|interpreter|tailor|florist|paramedic|cameraman|editor|animator|economist|realtor|estate agent|flight attendant|lifeguard|zookeeper|detective|diplomat",
+    "sommelier|cartographer|actuary|lexicographer|taxidermist|farrier|cooper|chandler|milliner|cobbler|glazier|luthier|horologist|perfumer|falconer|apiarist|beekeeper|archivist|curator|stenographer|ombudsman|toxicologist|seismologist|volcanologist|ornithologist|entomologist|cryptographer|sound engineer|foley artist|stunt double|stuntman|puppeteer|mortician|embalmer|chimney sweep|locksmith|blacksmith|stevedore|sherpa|town crier"] },
+
+  { q: "Name a car brand", t: [
+    "toyota|bmw|mercedes|ferrari|ford|nissan|tesla",
+    "audi|honda|lamborghini|porsche|chevrolet|chevy|volkswagen|vw|hyundai|kia|lexus|jeep|land rover|range rover|mazda|bentley|rolls royce",
+    "mitsubishi|subaru|volvo|jaguar|maserati|bugatti|mclaren|aston martin|peugeot|renault|fiat|dodge|cadillac|gmc|infiniti|genesis|mini|suzuki|lincoln|alfa romeo|citroen|skoda|byd|chrysler|buick|ram",
+    "koenigsegg|pagani|lotus|seat|cupra|dacia|lancia|opel|vauxhall|saab|polestar|rivian|lucid|smart|tata|mahindra|proton|perodua|geely|chery|nio|xpeng|haval|lada|w motors|ssangyong|holden|pontiac|hummer|maybach|alpine|morgan|caterham|spyker|rimac|zenvo|devel"] },
+
+  { q: "Name a Middle Eastern dish", t: [
+    "hummus|shawarma|falafel|kebab|biryani",
+    "tabbouleh|fattoush|kabsa|mandi|machboos|majboos|manakish|manoushe|baba ganoush|mutabal|shish tawook|tawook|kofta|labneh|samosa|harees",
+    "mansaf|maqluba|maqlooba|musakhan|fatteh|kibbeh|warak enab|vine leaves|dolma|molokhia|mulukhiyah|koshari|kushari|ful|ful medames|shakshuka|freekeh|thareed|tharid|luqaimat|kunafa|knafeh|um ali|balaleet|chebab|regag|saloona|madrouba|jareesh",
+    "muhammara|kubba|sfiha|fatayer|arayes|mujaddara|mjaddara|sayadieh|quzi|ouzi|makdous|shanklish|maamoul|qatayef|basbousa|halawet el jeben|aseeda|harira|tagine|pastilla|bastilla|couscous|mehshi|mahshi|batata harra|kibbeh nayeh|makloubeh|samboosa|khubz|lahm bi ajeen|shorbat adas|lentil soup|fesenjan|tahdig|ghormeh sabzi"] },
+
+  { q: "Name an app on your phone", t: [
+    "whatsapp|instagram|tiktok|youtube|snapchat",
+    "facebook|twitter|x|spotify|netflix|google maps|gmail|chatgpt|telegram|uber|careem|talabat|amazon|pinterest|calculator|camera|photos|settings",
+    "discord|reddit|linkedin|threads|zoom|teams|slack|duolingo|shazam|deliveroo|noon|canva|capcut|notion|waze|google translate|translate|calendar|clock|notes|weather|messages|safari|chrome|bereal|claude",
+    "strava|goodreads|letterboxd|tumblr|signal|viber|wechat|kakaotalk|bumble|vinted|depop|shein|temu|instashop|entertainer|uae pass|dubai now|nol pay|tabby|tamara|google lens|authenticator|voice memos|compass|measure|magnifier|wallet|health|find my|podcasts|audible|kindle|wattpad|webtoon|roblox|minecraft|candy crush|wordle|lichess|headspace|calm|anghami|soundcloud|deezer|tidal|vsco|lightroom|procreate|picsart|snapseed"] },
+];
+
+</script>
+<script>
+(() => {
+  // ---------- config ----------
+  const API = "/api/room";
+  const SECS = 25, PER = 7, SOLO = 20;
+  const TIERS = [
+    { name: "Launchpad",  pts: 10,  c: "var(--t0)", blurb: "what everyone says" },
+    { name: "Low Orbit",  pts: 30,  c: "var(--t1)", blurb: "a bit less obvious" },
+    { name: "Deep Space", pts: 60,  c: "var(--t2)", blurb: "nicely rare" },
+    { name: "Far Out",    pts: 100, c: "var(--t3)", blurb: "who even knows that?" },
+  ];
+
+  // ---------- helpers ----------
+  const $ = (s) => document.querySelector(s);
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+  const store = {
+    get(k, d = null) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+    del(k) { try { localStorage.removeItem(k); } catch {} },
+  };
+  function toast(msg) {
+    const t = $("#toast"); t.textContent = msg; t.classList.add("show");
+    clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove("show"), 2600);
+  }
+  async function api(body) {
+    const res = await fetch(API, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw Object.assign(new Error(data.error || "Something went wrong"), { status: res.status });
+    return data;
+  }
+  async function fetchState(code) {
+    const res = await fetch(`${API}?code=${encodeURIComponent(code)}`, { cache: "no-store" });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw Object.assign(new Error(data.error || "Room not found"), { status: res.status });
+    return data;
+  }
+  function show(id) {
+    document.querySelectorAll(".screen").forEach((s) => s.classList.toggle("on", s.id === id));
+    window.scrollTo({ top: 0 });
+  }
+  const initial = (n) => esc((n || "?").trim().charAt(0).toUpperCase());
+
+  // ---------- answer matching ----------
+  const norm = (s) => String(s).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "")
+    .replace(/&/g, " and ").replace(/['’`]/g, "").replace(/[^a-z0-9]+/g, " ").trim()
+    .replace(/^(the|a|an) /, "").replace(/ /g, "");
+  const INDEX = BANK.map((p) => {
+    const m = new Map();
+    p.t.forEach((list, tier) => list.split("|").forEach((a) => { const k = norm(a); if (k && !m.has(k)) m.set(k, { tier, label: a }); }));
+    return m;
+  });
+  function lev(a, b, max) {
+    if (Math.abs(a.length - b.length) > max) return max + 1;
+    let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+    for (let i = 1; i <= a.length; i++) {
+      const cur = [i]; let best = i;
+      for (let j = 1; j <= b.length; j++) {
+        cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+        best = Math.min(best, cur[j]);
+      }
+      if (best > max) return max + 1;
+      prev = cur;
+    }
+    return prev[b.length];
+  }
+  function lookup(pi, raw) {
+    const k = norm(raw || ""); if (!k) return null;
+    const m = INDEX[pi];
+    const tries = [k];
+    if (k.endsWith("ies")) tries.push(k.slice(0, -3) + "y");
+    if (k.endsWith("es")) tries.push(k.slice(0, -2));
+    if (k.endsWith("s")) tries.push(k.slice(0, -1));
+    tries.push(k + "s");
+    for (const t of tries) if (m.has(t)) return m.get(t);
+    if (k.length < 5) return null;
+    const max = k.length >= 9 ? 2 : 1;
+    let best = null, bd = max + 1;
+    for (const [bk, v] of m) {
+      const d = lev(bk, k, max);
+      if (d < bd || (d === bd && best && v.tier < best.tier)) { best = v; bd = d; }
+    }
+    return bd <= max ? best : null;
+  }
+
+  // ---------- which prompts each round gets (same for everyone, no repeats until the bank runs out) ----------
+  function rng(a) { return () => { a |= 0; a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+  function shuffle(arr, r) { for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; } return arr; }
+  function promptsFor(seeds, round) {
+    let used = new Set(), picks = [];
+    for (let r = 1; r <= round; r++) {
+      let pool = BANK.map((_, i) => i).filter((i) => !used.has(i));
+      if (pool.length < PER) { used = new Set(); pool = BANK.map((_, i) => i); }
+      picks = shuffle(pool, rng(seeds[r - 1])).slice(0, PER);
+      picks.forEach((i) => used.add(i));
+    }
+    return picks;
+  }
+
+  // ---------- scoring a whole round ----------
+  function scoreRound(players, round, prompts) {
+    const subs = players.filter((p) => p.rounds && p.rounds[round]);
+    const totals = new Map(subs.map((p) => [p.id, { p, total: 0, farouts: 0, solos: 0 }]));
+    const rows = prompts.map((pi, qi) => {
+      const entries = subs.map((p) => {
+        const raw = (p.rounds[round][qi] || "").trim();
+        return { p, raw, hit: raw ? lookup(pi, raw) : null };
+      });
+      const counts = {};
+      entries.forEach((e) => { if (e.hit) counts[e.hit.label] = (counts[e.hit.label] || 0) + 1; });
+      entries.forEach((e) => {
+        e.solo = !!(e.hit && subs.length > 1 && counts[e.hit.label] === 1);
+        e.jinx = !!(e.hit && counts[e.hit.label] > 1);
+        e.pts = (e.hit ? TIERS[e.hit.tier].pts : 0) + (e.solo ? SOLO : 0);
+        const t = totals.get(e.p.id); t.total += e.pts;
+        if (e.hit && e.hit.tier === 3) t.farouts++;
+        if (e.solo) t.solos++;
+      });
+      return { pi, entries };
+    });
+    const board = [...totals.values()].sort((a, b) => b.total - a.total || b.farouts - a.farouts);
+    return { rows, board };
+  }
+
+  // ---------- app state ----------
+  let session = store.get("farout:session");   // {code,id,secret}
+  let room = null;                             // {meta, players}
+  let pollTimer = null;
+  let play = null;                             // current play-through
+  let lastScreen = "";
+  let celebrated = store.get("farout:celebrated", "");
+
+  function startPolling(ms = 2000) {
+    stopPolling();
+    pollTimer = setInterval(refresh, ms);
+  }
+  function stopPolling() { clearInterval(pollTimer); pollTimer = null; }
+
+  async function refresh() {
+    if (!session) return;
+    try {
+      room = await fetchState(session.code);
+      if (!room.players.some((p) => p.id === session.id)) throw Object.assign(new Error("You're no longer in this room"), { status: 403 });
+      route();
+    } catch (e) {
+      if (e.status === 404 || e.status === 403) { toast(e.message); leave(); }
+    }
+  }
+
+  const me = () => room && room.players.find((p) => p.id === session.id);
+  const isHost = () => room && room.meta.hostId === session.id;
+
+  function route() {
+    const { meta } = room;
+    if (meta.status === "lobby" || meta.round === 0) return renderLobby();
+    const mine = me();
+    const done = mine && mine.rounds && mine.rounds[meta.round];
+    if (!done) {
+      if (!play || play.round !== meta.round || play.code !== meta.code) beginPlay();
+      return;
+    }
+    renderResults();
+  }
+
+  // ---------- HOME ----------
+  function homeInit() {
+    const params = new URLSearchParams(location.search);
+    const code = (params.get("room") || "").toUpperCase();
+    $("#name").value = store.get("farout:name", "");
+    if (code) $("#joincode").value = code;
+    $("#joincode").addEventListener("input", (e) => { e.target.value = e.target.value.toUpperCase().replace(/[^A-Z]/g, ""); });
+    $("#btn-create").onclick = () => enter("create");
+    $("#btn-join").onclick = () => enter("join");
+    $("#joincode").addEventListener("keydown", (e) => { if (e.key === "Enter") enter("join"); });
+  }
+  async function enter(action) {
+    const name = $("#name").value.trim();
+    if (!name) { $("#name").focus(); return toast("Pop your name in first"); }
+    store.set("farout:name", name);
+    const body = { action, name };
+    if (action === "join") {
+      body.code = $("#joincode").value.trim();
+      if (body.code.length !== 4) { $("#joincode").focus(); return toast("Room codes are 4 letters"); }
+    }
+    const btn = action === "create" ? $("#btn-create") : $("#btn-join");
+    btn.disabled = true;
+    try {
+      const r = await api(body);
+      session = { code: r.code, id: r.id, secret: r.secret };
+      store.set("farout:session", session);
+      history.replaceState(null, "", `?room=${r.code}`);
+      await refresh();
+      startPolling();
+    } catch (e) { toast(e.message); }
+    finally { btn.disabled = false; }
+  }
+  function leave() {
+    stopPolling(); clearInterval(play?.tick); play = null; room = null; session = null;
+    store.del("farout:session");
+    history.replaceState(null, "", location.pathname);
+    show("s-home"); lastScreen = "home";
+  }
+  document.querySelectorAll("[data-leave]").forEach((b) => b.onclick = () => { if (confirm("Leave this room?")) leave(); });
+
+  // ---------- LOBBY ----------
+  function chipsHTML(players) {
+    return players.map((p) => `<span class="chip"><span class="dot" style="background:${p.color}">${initial(p.name)}</span>${esc(p.name)}${p.id === room.meta.hostId ? ' <span class="small">· host</span>' : ""}</span>`).join("");
+  }
+  function renderLobby() {
+    if (lastScreen !== "lobby") { show("s-lobby"); lastScreen = "lobby"; startPolling(); }
+    $("#lobby-code").textContent = room.meta.code;
+    $("#lobby-players").innerHTML = chipsHTML(room.players);
+    $("#lobby-action").innerHTML = isHost()
+      ? `<button id="btn-start">Start the game 🚀</button><p class="small center" style="margin-top:8px">${room.players.length < 2 ? "Waiting for your sisters to join — or start solo." : `${room.players.length} players ready.`}</p>`
+      : `<div class="card center"><div class="small">Waiting for the host to launch…</div></div>`;
+    const b = $("#btn-start"); if (b) b.onclick = startRound;
+  }
+  async function startRound() {
+    const b = $("#btn-start") || $("#btn-next"); if (b) b.disabled = true;
+    try { await api({ action: "start", ...session }); await refresh(); }
+    catch (e) { toast(e.message); if (b) b.disabled = false; }
+  }
+  $("#btn-invite").onclick = async () => {
+    const url = `${location.origin}${location.pathname}?room=${room.meta.code}`;
+    const text = `Join my Far Out room — code ${room.meta.code}`;
+    if (navigator.share) { try { await navigator.share({ title: "Far Out", text, url }); return; } catch {} }
+    try { await navigator.clipboard.writeText(url); toast("Invite link copied ✨"); } catch { toast(url); }
+  };
+  $("#tiers").innerHTML = TIERS.map((t) => `<div class="tier" style="border-color:${t.c}"><b style="color:${t.c}">${t.name}</b><span>+${t.pts} · ${t.blurb}</span></div>`).join("");
+
+  // ---------- PLAY ----------
+  function beginPlay() {
+    stopPolling();
+    const { meta } = room;
+    const key = `farout:play:${meta.code}:${meta.round}`;
+    const saved = store.get(key);
+    play = {
+      key, code: meta.code, round: meta.round,
+      prompts: promptsFor(meta.seeds, meta.round),
+      idx: saved?.idx || 0, answers: saved?.answers || [], score: saved?.score || 0,
+    };
+    show("s-play"); lastScreen = "play";
+    askQuestion();
+  }
+  function savePlay() { store.set(play.key, { idx: play.idx, answers: play.answers, score: play.score }); }
+  function hud() {
+    $("#pips").innerHTML = Array.from({ length: PER }, (_, i) => `<span class="pip ${i < play.idx ? "done" : i === play.idx ? "now" : ""}"></span>`).join("");
+    $("#alt").innerHTML = `${play.score} <small>light-years</small>`;
+  }
+  function askQuestion() {
+    if (play.idx >= PER) return finishPlay();
+    hud();
+    $("#play-flash").hidden = true; $("#play-q").hidden = false;
+    $("#prompt").textContent = BANK[play.prompts[play.idx]].q;
+    const input = $("#answer"); input.value = ""; input.disabled = false;
+    setTimeout(() => input.focus(), 50);
+    const end = Date.now() + SECS * 1000;
+    clearInterval(play.tick);
+    const bar = $("#timer-bar"), secs = $("#secs"), timer = $("#timer");
+    const draw = () => {
+      const left = Math.max(0, end - Date.now());
+      bar.style.transform = `scaleX(${left / (SECS * 1000)})`;
+      secs.textContent = Math.ceil(left / 1000);
+      timer.classList.toggle("low", left < 6000);
+      if (left <= 0) answer(true);
+    };
+    draw(); play.tick = setInterval(draw, 100);
+  }
+  $("#answer-form").addEventListener("submit", (e) => { e.preventDefault(); if ($("#answer").value.trim()) answer(false); });
+
+  function answer(timedOut) {
+    if (!play || $("#answer").disabled) return;
+    clearInterval(play.tick);
+    const input = $("#answer"); input.disabled = true;
+    const raw = input.value.trim();
+    const pi = play.prompts[play.idx];
+    const hit = raw ? lookup(pi, raw) : null;
+    const pts = hit ? TIERS[hit.tier].pts : 0;
+    play.answers[play.idx] = raw; play.score += pts; play.idx++; savePlay();
+
+    const f = $("#play-flash");
+    if (hit) {
+      const t = TIERS[hit.tier];
+      f.innerHTML = `<div class="ans">“${esc(raw)}”</div><div class="big pop" style="color:${t.c}">${t.name}</div><div class="pts">+${t.pts}</div>`;
+      if (hit.tier === 3) burst(30);
+    } else {
+      f.innerHTML = `<div class="ans">${raw ? `“${esc(raw)}”` : "&nbsp;"}</div><div class="big pop" style="color:var(--pink)">${raw ? "Lost in space" : timedOut ? "Out of fuel" : "Lost in space"}</div><div class="pts small">${raw ? "Not on our star charts" : "Time ran out"}</div>`;
+    }
+    $("#play-q").hidden = true; f.hidden = false;
+    hud();
+    setTimeout(askQuestion, 1500);
+  }
+  async function finishPlay() {
+    $("#play-q").hidden = true;
+    const f = $("#play-flash"); f.hidden = false;
+    f.innerHTML = `<div class="big pop">🛸</div><div class="pts">Docking…</div>`;
+    try {
+      await api({ action: "submit", ...session, round: play.round, answers: play.answers });
+    } catch (e) {
+      if (e.status !== 409) { toast(e.message + " — retrying"); setTimeout(finishPlay, 2500); return; }
+    }
+    store.del(play.key);
+    await refresh();
+    startPolling();
+  }
+
+  // ---------- RESULTS ----------
+  function renderResults() {
+    if (lastScreen !== "results") { show("s-results"); lastScreen = "results"; startPolling(); }
+    const { meta, players } = room;
+    const prompts = promptsFor(meta.seeds, meta.round);
+    const pending = players.filter((p) => !(p.rounds && p.rounds[meta.round]));
+    const reveal = pending.length === 0 || meta.revealed;
+    const { rows, board } = scoreRound(players, meta.round, prompts);
+
+    if (!reveal) {
+      const myBase = board.find((b) => b.p.id === session.id);
+      $("#results").innerHTML = `
+        <div class="card center"><div class="small">Round ${meta.round}</div>
+          <h2 style="margin:6px 0 2px">You're back on Earth 🌍</h2>
+          <p class="small">Scores land when everyone's finished.</p></div>
+        <div class="card mt"><h2>Still flying</h2><ul class="wait">
+          ${players.map((p) => `<li><span class="dot" style="background:${p.color}">${initial(p.name)}</span>${esc(p.name)}<span style="margin-left:auto">${p.rounds && p.rounds[meta.round] ? "✅" : "🚀…"}</span></li>`).join("")}
+        </ul></div>`;
+      $("#results-action").innerHTML = isHost() ? `<button class="ghost" id="btn-reveal">Show results now</button>` : "";
+      const r = $("#btn-reveal");
+      if (r) r.onclick = async () => { r.disabled = true; try { await api({ action: "reveal", ...session }); refresh(); } catch (e) { toast(e.message); r.disabled = false; } };
+      return;
+    }
+
+    const top = board[0]?.total || 1;
+    const champ = board[0];
+    const tie = board[1] && board[1].total === champ.total && board[1].farouts === champ.farouts;
+    const celebrateKey = `${meta.code}:${meta.round}`;
+    if (celebrated !== celebrateKey) { celebrated = celebrateKey; store.set("farout:celebrated", celebrateKey); burst(80); }
+
+    const r = rng(meta.seeds[meta.round - 1] + 7);
+    $("#results").innerHTML = `
+      <div class="winner">
+        <div class="crown">${tie ? "🤝" : "👑"}</div>
+        <div class="small">Round ${meta.round} · farthest traveller</div>
+        <div class="who" style="color:${champ.p.color}">${tie ? "It's a tie!" : esc(champ.p.name)}</div>
+      </div>
+      <div class="card board">
+        ${board.map((b, i) => `
+          <div class="p">
+            <div class="rank">${["🥇","🥈","🥉"][i] || i + 1}</div>
+            <div style="flex:1;min-width:0">
+              <div class="name">${esc(b.p.name)}${b.p.id === session.id ? ' <span class="small">(you)</span>' : ""}</div>
+              <div class="small">${b.farouts} Far Out · ${b.solos} solo flight${b.solos === 1 ? "" : "s"}</div>
+              <div class="bar"><i style="width:${Math.max(4, (b.total / top) * 100)}%;background:${b.p.color}"></i></div>
+            </div>
+            <div class="score">${b.total}<small>light-years</small></div>
+          </div>`).join("")}
+      </div>
+      <h2 class="mt">The answers</h2>
+      ${rows.map(({ pi, entries }, qi) => {
+        const far = BANK[pi].t[3].split("|");
+        const said = new Set(entries.filter((e) => e.hit).map((e) => e.hit.label));
+        const missed = shuffle(far.filter((a) => !said.has(a)), r).slice(0, 3);
+        return `<div class="card q"><h3>${qi + 1}. ${esc(BANK[pi].q)}</h3>
+          ${entries.map((e) => {
+            const t = e.hit ? TIERS[e.hit.tier] : null;
+            return `<div class="ansrow">
+              <span class="who" style="color:${e.p.color}">${esc(e.p.name)}</span>
+              <span class="what">${e.raw ? esc(e.raw) : '<span class="small">— no answer —</span>'}</span>
+              ${t ? `<span class="pill" style="background:${t.c}">${t.name} +${t.pts}</span>` : `<span class="pill" style="background:#4a3f78;color:var(--mute)">${e.raw ? "Lost" : "—"} 0</span>`}
+              ${e.solo ? `<span class="badge" style="color:var(--green);border-color:var(--green)">🛰️ Solo +${SOLO}</span>` : ""}
+              ${e.jinx ? `<span class="badge" style="color:var(--pink);border-color:var(--pink)">Jinx!</span>` : ""}
+            </div>`;
+          }).join("")}
+          ${missed.length ? `<div class="missed">Far Out answers nobody said: <b>${missed.map(esc).join(", ")}</b></div>` : ""}
+        </div>`;
+      }).join("")}`;
+
+    $("#results-action").innerHTML = isHost()
+      ? `<button id="btn-next">Next round 🚀</button>`
+      : `<div class="card center"><div class="small">Waiting for the host to launch the next round…</div></div>`;
+    const n = $("#btn-next"); if (n) n.onclick = startRound;
+  }
+
+  // ---------- sparkle ----------
+  function burst(n) {
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const cols = ["#ffd166", "#ff6b9d", "#5ce1e6", "#9b8cff", "#7cf29a"];
+    for (let i = 0; i < n; i++) {
+      const c = document.createElement("i");
+      c.className = "confetti";
+      c.style.left = Math.random() * 100 + "vw";
+      c.style.background = cols[i % cols.length];
+      c.style.animationDuration = 1.8 + Math.random() * 1.6 + "s";
+      c.style.animationDelay = Math.random() * 0.4 + "s";
+      c.style.borderRadius = Math.random() > 0.5 ? "50%" : "2px";
+      document.body.appendChild(c);
+      setTimeout(() => c.remove(), 4000);
+    }
+  }
+  (function stars() {
+    const sky = $("#sky");
+    for (let i = 0; i < 110; i++) {
+      const s = document.createElement("i"); s.className = "star";
+      const size = Math.random() < 0.85 ? 1 + Math.random() * 1.5 : 2.5 + Math.random();
+      Object.assign(s.style, { width: size + "px", height: size + "px", left: Math.random() * 100 + "%", top: Math.random() * 100 + "%",
+        animationDelay: Math.random() * 4 + "s", animationDuration: 2.5 + Math.random() * 3 + "s" });
+      sky.appendChild(s);
+    }
+  })();
+
+  // ---------- boot ----------
+  homeInit();
+  const urlCode = (new URLSearchParams(location.search).get("room") || "").toUpperCase();
+  if (session && (!urlCode || urlCode === session.code)) { refresh().then(() => { if (session) startPolling(); }); }
+  else { if (session) store.del("farout:session"); session = null; show("s-home"); lastScreen = "home"; }
+
+  // expose for testing
+  window.__farout = { lookup, promptsFor, scoreRound, norm };
+})();
+</script>
+</body>
+</html>
